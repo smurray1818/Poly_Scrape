@@ -23,7 +23,7 @@ if [[ ${#FILES_TO_ADD[@]} -eq 0 ]]; then
     exit 0
 fi
 
-git add "${FILES_TO_ADD[@]}"
+git add --force "${FILES_TO_ADD[@]}"
 
 if git diff --cached --quiet; then
     echo "[sync] No changes in CSVs since last push — skipping."
