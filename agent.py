@@ -183,6 +183,9 @@ WIN_RATE_MIN       = 0.85
 TRADES_PER_DAY_MIN = 10
 VIEWS_MAX          = 1000
 
+# Push an incremental update to GitHub every N wallets processed
+PUSH_EVERY = 50
+
 
 def passes_filter(stats: dict) -> bool:
     wr  = stats.get("win_rate")
@@ -196,9 +199,43 @@ def passes_filter(stats: dict) -> bool:
     )
 
 
+def write_results(results: list, out_path: Path) -> None:
+    """Write sorted results to disk."""
+    sorted_results = sorted(results, key=lambda x: (-x["win_rate"], -x["profit"]))
+    with open(out_path, "w") as f:
+        json.dump(sorted_results, f, indent=2)
+
+
+def git_push(out_path: Path, label: str) -> None:
+    """Commit and push results.json if it changed."""
+    import subprocess
+    repo = out_path.parent.parent  # project root
+
+    try:
+        subprocess.run(["git", "-C", str(repo), "add", str(out_path)], check=True)
+        diff = subprocess.run(
+            ["git", "-C", str(repo), "diff", "--cached", "--quiet"],
+            capture_output=True,
+        )
+        if diff.returncode == 0:
+            print(f"  [git] no changes at {label}, skipping push.")
+            return
+        subprocess.run(
+            ["git", "-C", str(repo), "commit", "-m",
+             f"chore: incremental update – {label}"],
+            check=True,
+        )
+        subprocess.run(["git", "-C", str(repo), "push"], check=True)
+        print(f"  [git] pushed update at {label}")
+    except Exception as exc:
+        print(f"  [git] push failed at {label}: {exc}")
+
+
 def run():
-    wallets = fetch_leaderboard_wallets()
-    results = []
+    wallets  = fetch_leaderboard_wallets()
+    results  = []
+    out_path = Path(__file__).parent / "docs" / "results.json"
+    out_path.parent.mkdir(exist_ok=True)
 
     for i, w in enumerate(wallets, 1):
         address = w["address"]
@@ -207,38 +244,38 @@ def run():
         stats = fetch_trade_stats(address)
         if not stats:
             print("no trade data, skipping.")
-            continue
+        else:
+            # Use leaderboard PnL as fallback profit when positions return 0
+            if stats["profit"] == 0.0 and w.get("pnl_raw"):
+                stats["profit"] = round(float(w["pnl_raw"]), 2)
 
-        # Use leaderboard PnL as fallback profit when positions return 0
-        if stats["profit"] == 0.0 and w.get("pnl_raw"):
-            stats["profit"] = round(float(w["pnl_raw"]), 2)
-
-        print(
-            f"wr={stats['win_rate']}  tpd={stats['trades_per_day']}  "
-            f"profit={stats['profit']}  views={stats['views']}"
-        )
-
-        if passes_filter(stats):
-            results.append(
-                {
-                    "address":        address,
-                    "win_rate":       stats["win_rate"],
-                    "trades_per_day": stats["trades_per_day"],
-                    "profit":         stats["profit"],
-                    "views":          stats["views"],
-                    "polymarket_url": f"https://polymarket.com/profile/{address}",
-                }
+            print(
+                f"wr={stats['win_rate']}  tpd={stats['trades_per_day']}  "
+                f"profit={stats['profit']}  views={stats['views']}"
             )
+
+            if passes_filter(stats):
+                results.append(
+                    {
+                        "address":        address,
+                        "win_rate":       stats["win_rate"],
+                        "trades_per_day": stats["trades_per_day"],
+                        "profit":         stats["profit"],
+                        "views":          stats["views"],
+                        "polymarket_url": f"https://polymarket.com/profile/{address}",
+                    }
+                )
+
+        # Incrementally write + push every PUSH_EVERY wallets
+        if i % PUSH_EVERY == 0:
+            write_results(results, out_path)
+            git_push(out_path, f"{i}/{len(wallets)} wallets")
 
         time.sleep(REQUEST_DELAY)
 
-    # Sort by win rate desc, then profit desc
-    results.sort(key=lambda x: (-x["win_rate"], -x["profit"]))
-
-    out_path = Path(__file__).parent / "docs" / "results.json"
-    out_path.parent.mkdir(exist_ok=True)
-    with open(out_path, "w") as f:
-        json.dump(results, f, indent=2)
+    # Final write + push
+    write_results(results, out_path)
+    git_push(out_path, "final")
 
     print(f"\nDone. {len(results)} wallets matched filters → {out_path}")
 
