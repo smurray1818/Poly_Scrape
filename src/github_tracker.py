@@ -134,6 +134,16 @@ class GitHubTracker:
     async def _post_stats(self):
         if not self._issue:
             return
+        # Snapshot latency metrics to CSV for the dashboard sync script
+        import os
+        from pathlib import Path
+        csv_path = Path(os.getenv("LATENCY_CSV_PATH",
+                        Path(__file__).parent.parent / "logs" / "latency_snapshot.csv"))
+        try:
+            latency_tracker.append_csv_snapshot(csv_path)
+        except Exception as e:
+            logger.warning("Failed to write latency snapshot: %s", e)
+
         body = self._build_body()
         url = f"{GITHUB_API}/repos/{self.repo}/issues/{self._issue}/comments"
         headers = {

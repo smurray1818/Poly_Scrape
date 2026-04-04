@@ -63,6 +63,27 @@ class LatencyTracker:
             )
         return "\n".join(rows)
 
+    def append_csv_snapshot(self, path) -> None:
+        """Append one row per tracked stage to a CSV file (creates header if new)."""
+        import csv
+        from datetime import datetime, timezone
+        from pathlib import Path
+
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        headers = ["timestamp", "stage", "count", "mean_ms", "p50_ms", "p95_ms", "p99_ms", "max_ms"]
+        write_header = not p.exists() or p.stat().st_size == 0
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        with open(p, "a", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=headers)
+            if write_header:
+                w.writeheader()
+            for stage, s in sorted(self.all_stats().items()):
+                if s["count"] == 0:
+                    continue
+                w.writerow({"timestamp": now, "stage": stage, **s})
+
 
 # Module-level singleton used by all pipeline stages
 tracker = LatencyTracker()

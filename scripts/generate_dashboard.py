@@ -79,7 +79,6 @@ def pnl_per_contract_histogram(trades, buckets=12):
     labels, data, bg = [], [], []
     for b in range(buckets):
         low = round(lo + b * step, 3)
-        high = round(lo + (b + 1) * step, 3)
         labels.append(f"{low:.3f}")
         data.append(counts[b])
         bg.append("rgba(0,230,118,0.75)" if low >= 0 else "rgba(255,82,82,0.75)")
@@ -492,6 +491,64 @@ def generate(trades: list[dict]) -> str:
 # Entry point
 # ---------------------------------------------------------------------------
 
+def generate_badges(trades: list[dict], out_dir: Path) -> None:
+    """
+    Write shields.io endpoint JSON files so README badges stay live without
+    ever modifying README.md.
+
+    Served from GitHub Pages; referenced in README as:
+      https://img.shields.io/endpoint?url=https://smurray1818.github.io/Poly_Scrape/badge_winrate.json
+    """
+    # Win-rate badge
+    if trades:
+        wr = float(trades[-1]["win_rate_pct"])
+        wr_color = "brightgreen" if wr >= 55 else ("yellow" if wr >= 45 else "red")
+        wr_msg = f"{wr:.1f}%"
+    else:
+        wr_color = "lightgrey"
+        wr_msg = "no data"
+
+    # P&L badge
+    if trades:
+        pnl = float(trades[-1]["running_pnl"])
+        pnl_color = "brightgreen" if pnl > 0 else ("red" if pnl < 0 else "lightgrey")
+        pnl_msg = f"{'+'if pnl>=0 else ''}${pnl:.2f}"
+    else:
+        pnl_color = "lightgrey"
+        pnl_msg = "no data"
+
+    # Trade count badge
+    total = int(trades[-1]["total_trades"]) if trades else 0
+
+    badges = {
+        "badge_winrate.json": {
+            "schemaVersion": 1,
+            "label": "win rate",
+            "message": wr_msg,
+            "color": wr_color,
+            "namedLogo": "chartdotjs",
+        },
+        "badge_pnl.json": {
+            "schemaVersion": 1,
+            "label": "paper P&L",
+            "message": pnl_msg,
+            "color": pnl_color,
+            "namedLogo": "chartdotjs",
+        },
+        "badge_trades.json": {
+            "schemaVersion": 1,
+            "label": "trades",
+            "message": str(total),
+            "color": "blue",
+            "namedLogo": "chartdotjs",
+        },
+    }
+
+    for filename, payload in badges.items():
+        (out_dir / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"Badge written: {out_dir / filename}")
+
+
 if __name__ == "__main__":
     trades = load_trades(CSV_PATH)
     print(f"Loaded {len(trades)} trades from {CSV_PATH}")
@@ -501,3 +558,6 @@ if __name__ == "__main__":
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUT_FILE.write_text(html, encoding="utf-8")
     print(f"Dashboard written to {OUT_FILE}")
+
+    generate_badges(trades, OUT_FILE.parent)
+    print("Done.")

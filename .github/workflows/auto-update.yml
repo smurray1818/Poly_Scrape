@@ -1,0 +1,93 @@
+name: Auto-Update Dashboard
+
+# Runs on a schedule so the dashboard refreshes even without manual pushes.
+# Also fires on push so a manual `git push` triggers an immediate rebuild.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"    # every 15 minutes
+  push:
+    branches: ["main", "master"]
+    paths:
+      - "logs/paper_trades.csv"
+      - "logs/latency_snapshot.csv"
+  workflow_dispatch:
+
+# One deploy at a time; cancel a queued run if a newer one arrives.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+permissions:
+  contents: write        # commit badge JSON + dashboard back to repo
+  pages: write
+  id-token: write
+
+jobs:
+  update:
+    name: Regenerate dashboard & badges
+    runs-on: ubuntu-latest
+
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Use a PAT so the commit can trigger downstream workflows.
+          # Falls back to GITHUB_TOKEN (which won't re-trigger, but still deploys).
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate dashboard + badge JSON
+        run: python scripts/generate_dashboard.py
+
+      - name: Check for docs changes
+        id: diff
+        run: |
+          git diff --quiet docs/ && echo "changed=false" >> "$GITHUB_OUTPUT" \
+                                 || echo "changed=true"  >> "$GITHUB_OUTPUT"
+
+      - name: Commit updated docs
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          TRADES=$(python - <<'EOF'
+          import csv, pathlib
+          p = pathlib.Path("logs/paper_trades.csv")
+          rows = [r for r in csv.DictReader(open(p))] if p.exists() else []
+          last = rows[-1] if rows else {}
+          wr  = last.get("win_rate_pct", "—")
+          pnl = last.get("running_pnl", "—")
+          n   = last.get("total_trades", "0")
+          print(f"trades={n} win_rate={wr}% pnl=${pnl}")
+          EOF
+          )
+          git commit -m "chore: auto-update dashboard [$(date -u +'%Y-%m-%d %H:%M UTC')] — ${TRADES}"
+          git push
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: update
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4

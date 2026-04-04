@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.polymarket.sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/seanmurray/Projects/polymarket-tracker/scripts/sync_trades.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/seanmurray/Projects/polymarket-tracker</string>
+
+    <!-- Run every 15 minutes (900 seconds) -->
+    <key>StartInterval</key>
+    <integer>900</integer>
+
+    <!-- Also run once when loaded -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- PATH needs git and python3 -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <key>HOME</key>
+        <string>/Users/seanmurray</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/sync.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/sync.error.log</string>
+</dict>
+</plist>

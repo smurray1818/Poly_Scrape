@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.polymarket.bot</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/seanmurray/Projects/polymarket-tracker/.venv/bin/python</string>
+        <string>-m</string>
+        <string>src.main</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/seanmurray/Projects/polymarket-tracker</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/seanmurray/Projects/polymarket-tracker/.venv/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <!-- Restart automatically if the process exits -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Wait 10s before restarting after a crash -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Start on login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Stdout / stderr logs -->
+    <key>StandardOutPath</key>
+    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/bot.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/bot.error.log</string>
+</dict>
+</plist>
