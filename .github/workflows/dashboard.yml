@@ -1,0 +1,56 @@
+name: Paper Trades Dashboard
+
+on:
+  push:
+    branches: ["main", "master"]
+    paths:
+      - "logs/paper_trades.csv"     # rebuild only when trades data changes
+      - "scripts/generate_dashboard.py"
+      - ".github/workflows/dashboard.yml"
+  workflow_dispatch:                 # manual trigger from Actions tab
+
+# Allow only one concurrent deployment; cancel in-progress runs on new push
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Generate dashboard HTML
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate dashboard
+        run: python scripts/generate_dashboard.py
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4

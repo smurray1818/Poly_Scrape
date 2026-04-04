@@ -31,6 +31,7 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs — keep *.log out but track the paper trades CSV for the dashboard
 *.log
 logs/
+!logs/paper_trades.csv

@@ -18,6 +18,7 @@ from .executor import Executor
 from .feed import BinancePrice, FeedManager, PolymarketBook
 from .github_tracker import GitHubTracker
 from .latency import tracker as latency_tracker
+from .paper_trader import PaperTrader
 from .risk import RiskConfig, RiskManager
 from .signal import MomentumSignalEngine, Side
 from .sizer import KellySizer
@@ -138,14 +139,25 @@ class ContractBot:
     Token ID is refreshed at the start of every new 15-minute window.
     """
 
-    def __init__(self, contract: Contract, risk: RiskManager, sizer: KellySizer, executor: "Executor"):
+    def __init__(
+        self,
+        contract: Contract,
+        risk: RiskManager,
+        sizer: KellySizer,
+        executor: "Executor",
+        paper_trader: Optional[PaperTrader] = None,
+    ):
         self.contract = contract
         self.risk = risk
         self.sizer = sizer
         self.executor = executor
+        self.paper_trader = paper_trader
 
         self.active_token_id: Optional[str] = None
+        self._prev_token_id: Optional[str] = None  # used to detect window rollover
+        self._last_mid: float = 0.0
         self._window_end: int = 0
+        self._refreshing: bool = False  # guard against concurrent refreshes
 
         self.feed = FeedManager(
             binance_symbol=contract.binance_symbol,
@@ -162,9 +174,23 @@ class ContractBot:
 
     async def refresh_token_if_needed(self):
         now = int(time.time())
-        if now >= self._window_end - 5:  # refresh 5s before window rolls
+        if now < self._window_end - 5:
+            return
+        if self._refreshing:
+            return
+        self._refreshing = True
+        try:
             token_id = await resolve_15m_token_id(self.contract.asset_slug, side="UP")
             if token_id:
+                # Detect rollover: close the previous paper position at last known mid
+                if (
+                    self.paper_trader
+                    and self._prev_token_id
+                    and token_id != self._prev_token_id
+                ):
+                    self.paper_trader.close_position(self._prev_token_id)
+
+                self._prev_token_id = self.active_token_id
                 self.active_token_id = token_id
                 self.feed.poly_token_id = token_id
                 self._window_end = current_window_end_ts()
@@ -174,11 +200,18 @@ class ContractBot:
                 )
             else:
                 logger.warning("%s: could not resolve token ID for new window", self.contract.name)
+        finally:
+            self._refreshing = False
 
     async def _on_poly_update(self, book: PolymarketBook):
         await self.refresh_token_if_needed()
         if not self.active_token_id:
             return
+
+        # Keep paper trader's last_mid current on every tick
+        if self.paper_trader and book.mid is not None:
+            self._last_mid = book.mid
+            self.paper_trader.update_mid(self.active_token_id, book.mid)
 
         with latency_tracker.measure("pipeline.total"):
             sig = self.signal_engine.on_poly(book)
@@ -218,6 +251,14 @@ class ContractBot:
             )
             if result.success:
                 self.risk.record_fill(self.active_token_id, notional)
+                if self.paper_trader:
+                    self.paper_trader.record_fill(
+                        asset=self.contract.name,
+                        token_id=self.active_token_id,
+                        side=sig.side.value,
+                        size=size_result.contracts,
+                        entry_price=price,
+                    )
             else:
                 logger.warning("%s order failed: %s", self.contract.name, result.error)
 
@@ -245,8 +286,18 @@ class Bot:
             executor=self.executor,
         )
 
+        paper_trading = os.getenv("PAPER_TRADING", "false").lower() == "true"
+        self.paper_trader: Optional[PaperTrader] = None
+        if paper_trading:
+            csv_path = os.path.join(os.path.dirname(__file__), "..", "logs", "paper_trades.csv")
+            self.paper_trader = PaperTrader(
+                starting_bankroll=bankroll,
+                csv_path=os.path.normpath(csv_path),
+            )
+            logger.info("Paper trading ENABLED — logging to logs/paper_trades.csv")
+
         self.contract_bots = [
-            ContractBot(c, self.risk, self.sizer, self.executor)
+            ContractBot(c, self.risk, self.sizer, self.executor, self.paper_trader)
             for c in CONTRACTS
         ]
 
@@ -277,6 +328,8 @@ class Bot:
             logger.info("Shutting down…")
             for cb in self.contract_bots:
                 await cb.feed.stop()
+            if self.paper_trader:
+                self.paper_trader.close_all()
             await self.github.stop()
             for t in feed_tasks:
                 t.cancel()

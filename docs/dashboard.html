@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polymarket Paper Trading Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --green: #00e676;
+    --red: #ff5252;
+    --blue: #58a6ff;
+    --yellow: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+  header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+  header h1 span { color: var(--green); }
+  .updated { font-size: 0.75rem; color: var(--muted); }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    padding: 20px 24px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .stat-value { font-size: 1.3rem; font-weight: 700; }
+  .stat-value.pos { color: var(--green); }
+  .stat-value.neg { color: var(--red); }
+  .stat-value.neutral { color: var(--text); }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 16px;
+    padding: 0 24px 24px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px 12px;
+  }
+  .chart-card h2 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+  .chart-wrapper { position: relative; height: 240px; }
+
+  .empty-notice {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .empty-notice strong { display: block; font-size: 1.2rem; color: var(--text); margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Polymarket <span>Paper Trades</span> Dashboard</h1>
+  <span class="updated">Updated 2026-04-04 05:50 UTC</span>
+</header>
+
+<div class="empty-notice">
+  <strong>No trades yet</strong>
+  Run the bot with <code>PAPER_TRADING=true</code> and push <code>logs/paper_trades.csv</code>
+  after the first 15-minute window closes.
+</div>
+
+
+<script>
+Chart.defaults.color = "#8b949e";
+Chart.defaults.borderColor = "#30363d";
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+
+</script>
+</body>
+</html>

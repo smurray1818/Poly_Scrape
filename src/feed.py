@@ -11,13 +11,13 @@ from typing import Callable, Dict, Optional
 
 import websockets
 from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import OrderBookSummary
+from py_clob_client.clob_types import ApiCreds, OrderBookSummary
 
 from .latency import tracker
 
 logger = logging.getLogger(__name__)
 
-BINANCE_WS_URL = "wss://stream.binance.com:9443/ws"
+BINANCE_WS_URL = "wss://stream.binance.us:9443/ws"
 
 
 @dataclass
@@ -74,7 +74,8 @@ class FeedManager:
         secret = clob_secret or os.getenv("CLOB_SECRET", "")
         passphrase = clob_passphrase or os.getenv("CLOB_PASSPHRASE", "")
 
-        self.clob = ClobClient(host, key=key, secret=secret, passphrase=passphrase)
+        creds = ApiCreds(api_key=key, api_secret=secret, api_passphrase=passphrase)
+        self.clob = ClobClient(host, creds=creds)
 
         self._binance_callbacks: list[Callable] = []
         self._poly_callbacks: list[Callable] = []

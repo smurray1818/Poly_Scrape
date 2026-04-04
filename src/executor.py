@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import MarketOrderArgs, OrderType
+from py_clob_client.clob_types import ApiCreds, MarketOrderArgs
 
 from .latency import tracker
 from .signal import Side
@@ -50,7 +50,8 @@ class Executor:
         secret = clob_secret or os.getenv("CLOB_SECRET", "")
         passphrase = clob_passphrase or os.getenv("CLOB_PASSPHRASE", "")
 
-        self.clob = ClobClient(host, key=key, secret=secret, passphrase=passphrase)
+        creds = ApiCreds(api_key=key, api_secret=secret, api_passphrase=passphrase)
+        self.clob = ClobClient(host, creds=creds)
         self.dry_run = dry_run
         self._fills: list[OrderResult] = []
 
