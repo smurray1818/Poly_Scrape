@@ -8,11 +8,11 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/seanmurray/Projects/polymarket-tracker/scripts/sync_trades.sh</string>
+        <string>/Users/seanmurray/Projects/Poly_Up_Down/scripts/sync_trades.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/seanmurray/Projects/polymarket-tracker</string>
+    <string>/Users/seanmurray/Projects/Poly_Up_Down</string>
 
     <!-- Run every 15 minutes (900 seconds) -->
     <key>StartInterval</key>
@@ -32,9 +32,9 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/sync.log</string>
+    <string>/Users/seanmurray/Projects/Poly_Up_Down/logs/sync.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/sync.error.log</string>
+    <string>/Users/seanmurray/Projects/Poly_Up_Down/logs/sync.error.log</string>
 </dict>
 </plist>

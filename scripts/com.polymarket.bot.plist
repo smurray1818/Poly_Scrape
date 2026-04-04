@@ -7,18 +7,18 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/seanmurray/Projects/polymarket-tracker/.venv/bin/python</string>
+        <string>/Users/seanmurray/Projects/Poly_Up_Down/.venv/bin/python</string>
         <string>-m</string>
         <string>src.main</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/seanmurray/Projects/polymarket-tracker</string>
+    <string>/Users/seanmurray/Projects/Poly_Up_Down</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/Users/seanmurray/Projects/polymarket-tracker/.venv/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <string>/Users/seanmurray/Projects/Poly_Up_Down/.venv/bin:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
 
     <!-- Restart automatically if the process exits -->
@@ -35,9 +35,9 @@
 
     <!-- Stdout / stderr logs -->
     <key>StandardOutPath</key>
-    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/bot.log</string>
+    <string>/Users/seanmurray/Projects/Poly_Up_Down/logs/bot.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/seanmurray/Projects/polymarket-tracker/logs/bot.error.log</string>
+    <string>/Users/seanmurray/Projects/Poly_Up_Down/logs/bot.error.log</string>
 </dict>
 </plist>
