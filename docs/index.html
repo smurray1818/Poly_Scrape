@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polymarket Wallet Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --green:    #3fb950;
+      --red:      #f85149;
+      --muted:    #8b949e;
+      --text:     #e6edf3;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto 2rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: .4rem;
+      font-size: .9rem;
+    }
+
+    #meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: .75rem;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    #meta span { display: flex; align-items: center; gap: .35rem; }
+
+    .badge {
+      display: inline-block;
+      background: rgba(88,166,255,.12);
+      color: var(--accent);
+      border: 1px solid rgba(88,166,255,.3);
+      border-radius: 2rem;
+      padding: .15rem .65rem;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+
+    .card {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      overflow: hidden;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    thead th {
+      padding: .85rem 1rem;
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    thead th:hover { color: var(--text); }
+
+    thead th .sort-icon {
+      margin-left: .35rem;
+      opacity: .4;
+      font-size: .7rem;
+    }
+
+    thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+
+    td {
+      padding: .8rem 1rem;
+      vertical-align: middle;
+    }
+
+    .rank {
+      font-weight: 700;
+      color: var(--muted);
+      width: 2.5rem;
+    }
+
+    .rank-1  { color: #ffd700; }
+    .rank-2  { color: #c0c0c0; }
+    .rank-3  { color: #cd7f32; }
+
+    .wallet-cell {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+
+    .addr {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .8rem;
+      color: var(--accent);
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: .35rem;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .7rem;
+      padding: .15rem .45rem;
+      transition: all .12s;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .copy-btn.copied {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .win-rate {
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .profit {
+      font-weight: 600;
+    }
+
+    .profit.positive { color: var(--green); }
+    .profit.negative { color: var(--red); }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      background: rgba(88,166,255,.1);
+      border: 1px solid rgba(88,166,255,.25);
+      border-radius: .35rem;
+      color: var(--accent);
+      font-size: .75rem;
+      padding: .25rem .6rem;
+      text-decoration: none;
+      transition: all .12s;
+    }
+
+    .link-btn:hover {
+      background: rgba(88,166,255,.2);
+      border-color: var(--accent);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+    }
+
+    #loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 1.25rem;
+      height: 1.25rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: .5rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Polymarket Wallet Tracker</h1>
+  <p>Hidden alpha: wallets with &ge;85% win rate, &gt;10 trades/day, and &lt;1 000 profile views.</p>
+  <div id="meta">
+    <span id="count-badge"></span>
+    <span id="updated"></span>
+  </div>
+</header>
+
+<div class="card">
+  <div class="table-wrap">
+    <table id="table">
+      <thead>
+        <tr>
+          <th class="rank-col" data-col="rank">Rank<span class="sort-icon">&#9650;</span></th>
+          <th data-col="address">Wallet</th>
+          <th data-col="win_rate" class="sorted">Win Rate<span class="sort-icon">&#9660;</span></th>
+          <th data-col="trades_per_day">Trades/Day<span class="sort-icon">&#9650;</span></th>
+          <th data-col="profit">Profit<span class="sort-icon">&#9650;</span></th>
+          <th data-col="views">Views<span class="sort-icon">&#9650;</span></th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="7" id="loading"><span class="spinner"></span>Loading wallets…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let allData   = [];
+  let sortCol   = 'win_rate';
+  let sortAsc   = false;
+
+  function trunc(addr) {
+    return addr.slice(0, 6) + '…' + addr.slice(-4);
+  }
+
+  function fmtProfit(v) {
+    const abs = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (v < 0 ? '-' : '+') + '$' + abs;
+  }
+
+  function renderTable(data) {
+    const tbody = document.getElementById('tbody');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No wallets matched the filter criteria yet. Run the agent to populate results.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map((w, i) => {
+      const rank      = i + 1;
+      const rankClass = rank <= 3 ? ` rank-${rank}` : '';
+      const profClass = w.profit >= 0 ? 'positive' : 'negative';
+      const detailUrl = `wallet.html?address=${encodeURIComponent(w.address)}`;
+
+      return `
+        <tr>
+          <td class="rank${rankClass}">${rank}</td>
+          <td>
+            <div class="wallet-cell">
+              <a class="addr" href="${detailUrl}">${trunc(w.address)}</a>
+              <button class="copy-btn" data-addr="${w.address}" onclick="copyAddr(this)">Copy</button>
+            </div>
+          </td>
+          <td class="win-rate">${(w.win_rate * 100).toFixed(1)}%</td>
+          <td>${w.trades_per_day.toFixed(1)}</td>
+          <td class="profit ${profClass}">${fmtProfit(w.profit)}</td>
+          <td>${w.views.toLocaleString()}</td>
+          <td>
+            <a class="link-btn" href="${w.polymarket_url}" target="_blank" rel="noopener">
+              &#8599; Profile
+            </a>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function sortData() {
+    const col = sortCol;
+    allData.sort((a, b) => {
+      let va = a[col] ?? '';
+      let vb = b[col] ?? '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+    renderTable(allData);
+  }
+
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (col === sortCol) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = false;
+      }
+
+      document.querySelectorAll('thead th').forEach(h => h.classList.remove('sorted'));
+      th.classList.add('sorted');
+      const icon = th.querySelector('.sort-icon');
+      if (icon) icon.innerHTML = sortAsc ? '&#9650;' : '&#9660;';
+
+      sortData();
+    });
+  });
+
+  function copyAddr(btn) {
+    navigator.clipboard.writeText(btn.dataset.addr).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+
+  async function loadData() {
+    try {
+      const res  = await fetch('results.json?t=' + Date.now());
+      const data = await res.json();
+
+      allData = data;
+
+      // badge
+      const badge = document.getElementById('count-badge');
+      badge.innerHTML = `<span class="badge">${data.length} wallet${data.length !== 1 ? 's' : ''}</span>`;
+
+      // last modified via header
+      const lm = res.headers.get('Last-Modified');
+      if (lm) {
+        document.getElementById('updated').textContent =
+          'Last updated: ' + new Date(lm).toLocaleString();
+      }
+
+      sortData();
+    } catch (e) {
+      document.getElementById('tbody').innerHTML =
+        '<tr><td colspan="7" class="empty">Could not load results.json — run the agent first.</td></tr>';
+    }
+  }
+
+  loadData();
+</script>
+</body>
+</html>

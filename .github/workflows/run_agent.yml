@@ -1,0 +1,41 @@
+name: Run Polymarket Wallet Tracker
+
+on:
+  schedule:
+    # Every day at 03:00 UTC
+    - cron: "0 3 * * *"
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run wallet tracker agent
+        run: python agent.py
+
+      - name: Commit and push results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/results.json
+          if git diff --cached --quiet; then
+            echo "No changes to results.json – skipping commit."
+          else
+            git commit -m "chore: update wallet tracker results [$(date -u +'%Y-%m-%d %H:%M UTC')]"
+            git push
+          fi

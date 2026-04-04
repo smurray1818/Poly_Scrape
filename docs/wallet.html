@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet Detail – Polymarket Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --accent:  #58a6ff;
+      --green:   #3fb950;
+      --red:     #f85149;
+      --muted:   #8b949e;
+      --text:    #e6edf3;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .85rem;
+      margin-bottom: 1.5rem;
+      transition: color .12s;
+    }
+
+    .back-link:hover { color: var(--accent); }
+
+    .wallet-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .wallet-title h2 {
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: .35rem;
+    }
+
+    #full-address {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .85rem;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: .5rem;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .45rem .9rem;
+      border-radius: .45rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .12s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-outline {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-primary {
+      background: rgba(88,166,255,.15);
+      border: 1px solid rgba(88,166,255,.4);
+      color: var(--accent);
+    }
+
+    .btn-primary:hover { background: rgba(88,166,255,.25); }
+
+    .btn-outline.copied { border-color: var(--green); color: var(--green); }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1.25rem 1rem;
+    }
+
+    .stat-label {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.green  { color: var(--green); }
+    .stat-value.red    { color: var(--red); }
+    .stat-value.accent { color: var(--accent); }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: .75rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section h3 {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 1rem;
+    }
+
+    .kv-list { display: grid; gap: .65rem; }
+
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .875rem;
+    }
+
+    .kv-row .label { color: var(--muted); }
+
+    .kv-row .value {
+      font-weight: 600;
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+
+    #not-found {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+
+    #not-found h2 { font-size: 1.2rem; margin-bottom: .5rem; color: var(--text); }
+
+    #loading-msg {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 1.25rem;
+      height: 1.25rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+      margin-right: .5rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a class="back-link" href="index.html">&#8592; Back to Leaderboard</a>
+
+  <div id="loading-msg"><span class="spinner"></span>Loading wallet data…</div>
+
+  <div id="content" style="display:none">
+    <div class="wallet-header">
+      <div class="wallet-title">
+        <h2>Wallet Address</h2>
+        <span id="full-address"></span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline" id="copy-btn" onclick="copyAddress()">Copy Address</button>
+        <a class="btn btn-primary" id="poly-link" href="#" target="_blank" rel="noopener">&#8599; View on Polymarket</a>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-value green" id="stat-winrate">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Trades / Day</div>
+        <div class="stat-value accent" id="stat-tpd">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Profit</div>
+        <div class="stat-value" id="stat-profit">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Profile Views</div>
+        <div class="stat-value" id="stat-views">—</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Details</h3>
+      <div class="kv-list">
+        <div class="kv-row">
+          <span class="label">Full address</span>
+          <span class="value" id="detail-address">—</span>
+        </div>
+        <div class="kv-row">
+          <span class="label">Win rate</span>
+          <span class="value" id="detail-winrate">—</span>
+        </div>
+        <div class="kv-row">
+          <span class="label">Trades per day (30d avg)</span>
+          <span class="value" id="detail-tpd">—</span>
+        </div>
+        <div class="kv-row">
+          <span class="label">Total profit / PnL</span>
+          <span class="value" id="detail-profit">—</span>
+        </div>
+        <div class="kv-row">
+          <span class="label">Profile views</span>
+          <span class="value" id="detail-views">—</span>
+        </div>
+        <div class="kv-row">
+          <span class="label">Polymarket profile</span>
+          <span class="value"><a id="detail-link" href="#" target="_blank" rel="noopener" style="color:var(--accent)">Open &#8599;</a></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="not-found" style="display:none">
+    <h2>Wallet not found</h2>
+    <p>This address isn't in the current results. It may not meet the filter criteria, or the agent hasn't run yet.</p>
+    <br/>
+    <a class="back-link" href="index.html">&#8592; Back to Leaderboard</a>
+  </div>
+</div>
+
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const address = (params.get('address') || '').toLowerCase();
+
+  let walletData = null;
+
+  function fmtProfit(v) {
+    const abs = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (v < 0 ? '-' : '+') + '$' + abs;
+  }
+
+  function copyAddress() {
+    const btn = document.getElementById('copy-btn');
+    navigator.clipboard.writeText(walletData.address).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy Address'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+
+  function renderWallet(w) {
+    document.title = `${w.address.slice(0, 8)}… – Polymarket Tracker`;
+
+    document.getElementById('full-address').textContent = w.address;
+    document.getElementById('poly-link').href = w.polymarket_url;
+
+    // hero stats
+    document.getElementById('stat-winrate').textContent = (w.win_rate * 100).toFixed(1) + '%';
+    document.getElementById('stat-tpd').textContent     = w.trades_per_day.toFixed(1);
+
+    const profEl = document.getElementById('stat-profit');
+    profEl.textContent  = fmtProfit(w.profit);
+    profEl.style.color  = w.profit >= 0 ? 'var(--green)' : 'var(--red)';
+
+    document.getElementById('stat-views').textContent = w.views.toLocaleString();
+
+    // detail rows
+    document.getElementById('detail-address').textContent = w.address;
+    document.getElementById('detail-winrate').textContent  = (w.win_rate * 100).toFixed(2) + '%';
+    document.getElementById('detail-tpd').textContent      = w.trades_per_day.toFixed(2);
+    document.getElementById('detail-profit').textContent   = fmtProfit(w.profit);
+    document.getElementById('detail-views').textContent    = w.views.toLocaleString();
+    document.getElementById('detail-link').href            = w.polymarket_url;
+
+    document.getElementById('loading-msg').style.display = 'none';
+    document.getElementById('content').style.display     = '';
+  }
+
+  async function load() {
+    if (!address) {
+      document.getElementById('loading-msg').style.display = 'none';
+      document.getElementById('not-found').style.display   = '';
+      return;
+    }
+
+    try {
+      const res  = await fetch('results.json?t=' + Date.now());
+      const data = await res.json();
+      const w    = data.find(x => x.address.toLowerCase() === address);
+
+      if (!w) {
+        document.getElementById('loading-msg').style.display = 'none';
+        document.getElementById('not-found').style.display   = '';
+        return;
+      }
+
+      walletData = w;
+      renderWallet(w);
+    } catch (e) {
+      document.getElementById('loading-msg').innerHTML =
+        '<p style="color:var(--red)">Failed to load results.json.</p>';
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>
