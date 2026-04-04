@@ -1,3 +1,15 @@
+# Core
+websockets>=12.0
+httpx>=0.27.0
+python-dotenv>=1.0.0
+
+# Polymarket
+py-clob-client>=0.17.0
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Existing
 requests
 pandas
-python-dotenv

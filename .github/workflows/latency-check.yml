@@ -1,0 +1,89 @@
+name: Latency Check
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  schedule:
+    # Run nightly at 02:00 UTC to catch regressions
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  latency-tests:
+    name: Run latency unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest pytest-asyncio
+
+      - name: Run latency tests
+        run: pytest tests/test_latency.py -v --tb=short
+
+  latency-regression:
+    name: Benchmark latency thresholds
+    runs-on: ubuntu-latest
+    needs: latency-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run latency benchmark
+        run: |
+          python - <<'EOF'
+          import time, statistics, sys
+          from src.latency import LatencyTracker
+
+          t = LatencyTracker()
+
+          # Simulate 1000 pipeline ticks
+          for _ in range(1000):
+              with t.measure("signal.evaluate"):
+                  pass   # pure overhead of context manager
+              with t.measure("executor.submit"):
+                  time.sleep(0)
+
+          print(t.summary_table())
+
+          # Threshold assertions (adjust as pipeline evolves)
+          overhead = t.stats("signal.evaluate")
+          assert overhead["p99_ms"] < 1.0, (
+              f"signal.evaluate p99 overhead {overhead['p99_ms']}ms exceeds 1ms"
+          )
+          print("All latency thresholds passed.")
+          EOF
+
+      - name: Comment latency results on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `### Latency Benchmark Results
+            Passed all threshold checks. See workflow logs for full table.`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
